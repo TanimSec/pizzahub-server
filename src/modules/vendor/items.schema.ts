@@ -7,11 +7,13 @@ const imageUrl = z
   .refine((u) => {
     try {
       const url = new URL(u);
-      return url.protocol === "https:" && (url.hostname === "ibb.co" || url.hostname.endsWith(".ibb.co"));
+      const host = url.hostname;
+      const trusted = host === "ibb.co" || host.endsWith(".ibb.co") || host === "res.cloudinary.com";
+      return url.protocol === "https:" && trusted;
     } catch {
       return false;
     }
-  }, "Image must be uploaded through ImgBB");
+  }, "Image must be uploaded through the platform image host");
 
 export const itemBody = z
   .object({
