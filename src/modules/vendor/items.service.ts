@@ -28,3 +28,40 @@ export async function createItem(vendor: UserDoc, data: z.infer<typeof itemBody>
   const { insertedId } = await items.insertOne(doc as never);
   return { _id: insertedId, ...doc };
 }
+
+export async function listVendorItems(vendorId: ObjectId, status?: string) {
+  const items = await collections.menuItems();
+  return items
+    .find({ vendorId, ...(status && { status: status as never }) })
+    .sort({ createdAt: -1 })
+    .toArray();
+}
+
+export async function getVendorItem(vendorId: ObjectId, id: ObjectId) {
+  const items = await collections.menuItems();
+  const item = await items.findOne({ _id: id, vendorId });
+  if (!item) throw ApiError.notFound("Menu item not found");
+  return item;
+}
+
+export async function updateItem(
+  vendorId: ObjectId,
+  id: ObjectId,
+  patch: Partial<z.infer<typeof itemBody>>,
+) {
+  const items = await collections.menuItems();
+  const current = await getVendorItem(vendorId, id);
+  const resubmit = current.status === "approved" || current.status === "rejected";
+  const $set = { ...patch, updatedAt: new Date(), ...(resubmit && { status: "pending" as const }) };
+  const updated = await items.findOneAndUpdate({ _id: id, vendorId }, { $set }, { returnDocument: "after" });
+  if (!updated) throw ApiError.notFound("Menu item not found");
+  return updated;
+}
+
+export async function deleteItem(vendorId: ObjectId, id: ObjectId) {
+  const [items, orders] = await Promise.all([collections.menuItems(), collections.orders()]);
+  await getVendorItem(vendorId, id);
+  const open = await orders.countDocuments({ itemId: id, status: { $in: ["pending", "accepted"] } });
+  if (open > 0) throw ApiError.conflict("This item has active orders. Resolve them before deleting.");
+  await items.deleteOne({ _id: id, vendorId });
+}
