@@ -1,5 +1,6 @@
-import type { Document } from "mongodb";
-import { collections } from "../../db/mongo.js";
+import type { Document, ObjectId } from "mongodb";
+import { ApiError } from "../../utils/ApiError.js";
+import { collections, type UserDoc } from "../../db/mongo.js";
 import { CATEGORIES } from "../../constants.js";
 import { escapeRegex } from "../../utils/escapeRegex.js";
 
@@ -113,4 +114,17 @@ export async function distinctLocations(): Promise<string[]> {
   const items = await collections.menuItems();
   const locations = await items.distinct("location", { status: "approved" });
   return locations.sort((a, b) => a.localeCompare(b));
+}
+
+export async function getMenuItem(id: ObjectId, viewer: UserDoc) {
+  const items = await collections.menuItems();
+  const [item] = await items
+    .aggregate([{ $match: { _id: id } }, ...vendorLookupStages()])
+    .toArray();
+  if (!item) throw ApiError.notFound("Menu item not found");
+  const isOwner = String(item.vendorId) === String(viewer._id);
+  if (item.status !== "approved" && !isOwner && viewer.role !== "admin") {
+    throw ApiError.notFound("Menu item not found");
+  }
+  return item;
 }

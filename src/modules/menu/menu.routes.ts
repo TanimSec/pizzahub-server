@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
+import { verifyJWT } from "../../middleware/verifyJWT.js";
+import { loadUser } from "../../middleware/loadUser.js";
+import { toObjectId } from "../../utils/objectId.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { categoryCounts, distinctLocations, featuredMenu, listMenu } from "./menu.service.js";
+import { categoryCounts, distinctLocations, featuredMenu, getMenuItem, listMenu } from "./menu.service.js";
 import { CATEGORIES } from "../../constants.js";
 
 const router = Router();
@@ -43,6 +46,15 @@ router.get(
   "/locations",
   asyncHandler(async (_req, res) => {
     res.json({ locations: await distinctLocations() });
+  }),
+);
+
+router.get(
+  "/:id",
+  verifyJWT,
+  loadUser,
+  asyncHandler(async (req, res) => {
+    res.json({ item: await getMenuItem(toObjectId(req.params.id, "menu item id"), req.user!) });
   }),
 );
 
