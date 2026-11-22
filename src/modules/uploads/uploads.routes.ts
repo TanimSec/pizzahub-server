@@ -4,6 +4,8 @@ import { verifyJWT } from "../../middleware/verifyJWT.js";
 import { loadUser } from "../../middleware/loadUser.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { env } from "../../config/env.js";
+import { uploadToCloudinary } from "./cloudinary.js";
 import { uploadToImgbb } from "./imgbb.js";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -33,7 +35,8 @@ router.post(
   },
   asyncHandler(async (req, res) => {
     if (!req.file) throw ApiError.badRequest("Image file is required");
-    const url = await uploadToImgbb(req.file.buffer, req.file.originalname, req.file.mimetype);
+    const upload = env.IMAGE_PROVIDER === "imgbb" ? uploadToImgbb : uploadToCloudinary;
+    const url = await upload(req.file.buffer, req.file.originalname, req.file.mimetype);
     res.status(201).json({ url });
   }),
 );
