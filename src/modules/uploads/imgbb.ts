@@ -8,11 +8,13 @@ interface ImgbbResponse {
 }
 
 export async function uploadToImgbb(buffer: Buffer, filename: string, mime: string): Promise<string> {
+  const apiKey = env.IMGBB_API_KEY;
+  if (!apiKey) throw new ApiError(500, "Image upload is not configured");
   const form = new FormData();
   form.append("image", new Blob([new Uint8Array(buffer)], { type: mime }), filename);
   let res: Response;
   try {
-    res = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(env.IMGBB_API_KEY)}`, {
+    res = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       body: form,
       signal: AbortSignal.timeout(20_000),
