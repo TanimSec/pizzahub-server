@@ -5,6 +5,9 @@ import { loadUser } from "../../middleware/loadUser.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { collections, type UserDoc } from "../../db/mongo.js";
+import { requireRole } from "../../middleware/requireRole.js";
+import { toObjectId } from "../../utils/objectId.js";
+import { vendorLookupStages } from "../menu/menu.service.js";
 import { isPremium } from "../../utils/premium.js";
 
 const router = Router();
@@ -54,6 +57,46 @@ router.patch(
     );
     if (!updated) throw ApiError.notFound("User not found");
     res.json({ user: publicUser(updated), message: "Profile updated" });
+  }),
+);
+
+router.get(
+  "/me/favorites",
+  requireRole("customer"),
+  asyncHandler(async (req, res) => {
+    const items = await collections.menuItems();
+    const favorites = req.user!.favorites ?? [];
+    const rows = await items
+      .aggregate([{ $match: { _id: { $in: favorites }, status: "approved" } }, ...vendorLookupStages()])
+      .toArray();
+    res.json({ items: rows, ids: favorites.map(String) });
+  }),
+);
+
+router.post(
+  "/me/favorites/:itemId",
+  requireRole("customer"),
+  asyncHandler(async (req, res) => {
+    const itemId = toObjectId(req.params.itemId, "menu item id");
+    const [items, users] = await Promise.all([collections.menuItems(), collections.users()]);
+    if (!(await items.findOne({ _id: itemId, status: "approved" }, { projection: { _id: 1 } }))) {
+      throw ApiError.notFound("Menu item not found");
+    }
+    await users.updateOne({ _id: req.user!._id }, { $addToSet: { favorites: itemId } });
+    res.status(201).json({ message: "Added to favorites" });
+  }),
+);
+
+router.delete(
+  "/me/favorites/:itemId",
+  requireRole("customer"),
+  asyncHandler(async (req, res) => {
+    const users = await collections.users();
+    await users.updateOne(
+      { _id: req.user!._id },
+      { $pull: { favorites: toObjectId(req.params.itemId, "menu item id") } },
+    );
+    res.json({ message: "Removed from favorites" });
   }),
 );
 
