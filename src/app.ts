@@ -12,6 +12,7 @@ import userRoutes from "./modules/users/users.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import paymentRoutes from "./modules/payments/payments.routes.js";
 import { stripeWebhook } from "./modules/webhooks/stripe.webhook.js";
+import { apiLimiter, writeLimiter } from "./middleware/rateLimit.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -22,6 +23,8 @@ app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 // Stripe needs the raw body for signature verification, so it is mounted before express.json().
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 app.use(express.json({ limit: "1mb" }));
+
+app.use("/api", apiLimiter, writeLimiter);
 
 app.get("/", (_req, res) => res.json({ name: "PizzaHub API", ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
