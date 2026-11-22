@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { env } from "./config/env.js";
 import menuRoutes from "./modules/menu/menu.routes.js";
 import uploadRoutes from "./modules/uploads/uploads.routes.js";
+import vendorRoutes from "./modules/vendor/vendor.routes.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -20,6 +21,8 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/menu", menuRoutes);
 
 app.use("/api/uploads", uploadRoutes);
+
+app.use("/api/vendor", vendorRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
