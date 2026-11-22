@@ -80,3 +80,70 @@ export async function listMyOrders(customerId: ObjectId, status?: string) {
     ])
     .toArray();
 }
+
+async function transition(
+  filter: { _id: ObjectId; customerId?: ObjectId; vendorId?: ObjectId },
+  to: "accepted" | "rejected" | "cancelled",
+  conflictMsg: string,
+) {
+  const orders = await collections.orders();
+  const now = new Date();
+  const updated = await orders.findOneAndUpdate(
+    { ...filter, status: "pending" },
+    { $set: { status: to }, $push: { statusHistory: { status: to, at: now } } },
+    { returnDocument: "after" },
+  );
+  if (updated) return updated;
+  const exists = await orders.findOne(filter, { projection: { _id: 1 } });
+  if (!exists) throw ApiError.notFound("Order not found");
+  throw ApiError.conflict(conflictMsg);
+}
+
+export const cancelOrder = (customerId: ObjectId, id: ObjectId) =>
+  transition({ _id: id, customerId }, "cancelled", "Only pending orders can be cancelled");
+
+export const decideOrder = (vendorId: ObjectId, id: ObjectId, action: "accept" | "reject") =>
+  transition(
+    { _id: id, vendorId },
+    action === "accept" ? "accepted" : "rejected",
+    "This order has already been processed",
+  );
+
+export async function getOrderDetail(viewer: UserDoc, id: ObjectId) {
+  const orders = await collections.orders();
+  const match =
+    viewer.role === "admin"
+      ? { _id: id }
+      : viewer.role === "vendor"
+        ? { _id: id, vendorId: viewer._id }
+        : { _id: id, customerId: viewer._id };
+  const [order] = await orders
+    .aggregate([
+      { $match: match },
+      { $lookup: { from: "menuItems", localField: "itemId", foreignField: "_id", as: "item" } },
+      { $unwind: { path: "$item", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "vendorId",
+          foreignField: "_id",
+          pipeline: [{ $project: { name: 1, image: 1, businessName: 1 } }],
+          as: "vendor",
+        },
+      },
+      { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          pipeline: [{ $project: { name: 1, email: 1, image: 1 } }],
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+    ])
+    .toArray();
+  if (!order) throw ApiError.notFound("Order not found");
+  return order;
+}
