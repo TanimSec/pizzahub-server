@@ -1,13 +1,16 @@
 import type { RequestHandler } from "express";
 import { ensureIndexes } from "../db/indexes.js";
 
-let pending: Promise<void> | null = null;
+let started = false;
 
-// Serverless-safe: create indexes once per instance; never block requests if it fails.
+// Serverless-safe: kick off index creation once per instance without ever blocking a request.
 export const ensureIndexesOnce: RequestHandler = (_req, _res, next) => {
-  pending ??= ensureIndexes().catch((err) => {
-    console.error("Index creation failed", err);
-    pending = null;
-  });
-  pending.finally(() => next());
+  if (!started) {
+    started = true;
+    ensureIndexes().catch((err) => {
+      started = false;
+      console.error("Index creation failed", err);
+    });
+  }
+  next();
 };

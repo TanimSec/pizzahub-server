@@ -64,7 +64,7 @@ let clientPromise: Promise<MongoClient> | null = null;
 
 function getClient(): Promise<MongoClient> {
   if (!clientPromise) {
-    clientPromise = new MongoClient(env.MONGODB_URI, { maxPoolSize: 10 })
+    clientPromise = new MongoClient(env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 8000 })
       .connect()
       .catch((err) => {
         clientPromise = null;
