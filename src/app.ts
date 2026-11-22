@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
+import menuRoutes from "./modules/menu/menu.routes.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -14,6 +15,8 @@ app.use(express.json({ limit: "1mb" }));
 
 app.get("/", (_req, res) => res.json({ name: "PizzaHub API", ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+app.use("/api/menu", menuRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
