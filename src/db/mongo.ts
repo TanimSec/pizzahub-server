@@ -1,4 +1,5 @@
 import { MongoClient, type Db, type Collection, ObjectId } from "mongodb";
+import { attachDatabasePool } from "@vercel/functions";
 import { env } from "../config/env.js";
 
 export type Role = "vendor" | "customer" | "admin";
@@ -64,7 +65,14 @@ let clientPromise: Promise<MongoClient> | null = null;
 
 function getClient(): Promise<MongoClient> {
   if (!clientPromise) {
-    clientPromise = new MongoClient(env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 8000 })
+    // Atlas shared tiers can take several seconds to finish the primary handshake.
+    const client = new MongoClient(env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 20_000,
+      connectTimeoutMS: 20_000,
+    });
+    attachDatabasePool(client);
+    clientPromise = client
       .connect()
       .catch((err) => {
         clientPromise = null;
