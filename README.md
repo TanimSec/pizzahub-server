@@ -2,10 +2,10 @@
 
 REST API for **PizzaHub**, a pizza ordering and delivery platform where customers order from local shops, vendors manage menus and orders, and admins moderate the platform.
 
-- **Live API:** _add after deployment_
-- **Live site:** _add after deployment_
-- **Client repository:** _add GitHub link_
-- **Server repository:** _add GitHub link_
+- **Live API:** https://pizzahub-server-orpin.vercel.app
+- **Live site:** https://pizzahub-client-alpha-hazel.vercel.app
+- **Client repository:** https://github.com/TanimSec/pizzahub-client
+- **Server repository:** https://github.com/TanimSec/pizzahub-server
 
 ## Features
 
@@ -24,7 +24,7 @@ express, mongodb, jose, zod, stripe, multer, cors, helmet, express-rate-limit, m
 ## Installation
 
 ```bash
-git clone <server-repo-url>
+git clone https://github.com/TanimSec/pizzahub-server.git
 cd pizzahub-server
 npm install
 cp .env.example .env   # then fill in the values
