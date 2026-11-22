@@ -17,6 +17,10 @@ export async function ensureIndexes(): Promise<void> {
     items.createIndex({ price: 1 }),
     orders.createIndex({ customerId: 1, itemId: 1, deliveryDate: 1, status: 1 }),
     orders.createIndex({ vendorId: 1, status: 1 }),
+    orders.createIndex(
+      { customerId: 1, itemId: 1, deliveryDate: 1 },
+      { unique: true, partialFilterExpression: { status: { $in: ["pending", "accepted"] } } },
+    ),
     tx.createIndex({ stripeSessionId: 1 }, { unique: true, sparse: true }),
     tx.createIndex({ stripeInvoiceId: 1 }, { unique: true, sparse: true }),
     tx.createIndex({ vendorId: 1, createdAt: -1 }),
