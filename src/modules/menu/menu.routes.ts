@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { listMenu } from "./menu.service.js";
+import { categoryCounts, distinctLocations, featuredMenu, listMenu } from "./menu.service.js";
 import { CATEGORIES } from "../../constants.js";
 
 const router = Router();
@@ -22,6 +22,27 @@ router.get(
   asyncHandler(async (req, res) => {
     const query = listQuery.parse(req.query);
     res.json(await listMenu(query));
+  }),
+);
+
+router.get(
+  "/featured",
+  asyncHandler(async (_req, res) => {
+    res.json({ items: await featuredMenu(8) });
+  }),
+);
+
+router.get(
+  "/categories",
+  asyncHandler(async (_req, res) => {
+    res.json({ categories: await categoryCounts() });
+  }),
+);
+
+router.get(
+  "/locations",
+  asyncHandler(async (_req, res) => {
+    res.json({ locations: await distinctLocations() });
   }),
 );
 

@@ -1,5 +1,6 @@
 import type { Document } from "mongodb";
 import { collections } from "../../db/mongo.js";
+import { CATEGORIES } from "../../constants.js";
 import { escapeRegex } from "../../utils/escapeRegex.js";
 
 export interface MenuQuery {
@@ -83,4 +84,33 @@ export async function listMenu(query: MenuQuery) {
     .toArray();
   const total: number = result?.total?.[0]?.n ?? 0;
   return { items: result?.items ?? [], total, page, pages: Math.max(1, Math.ceil(total / limit)), limit };
+}
+
+export async function featuredMenu(limit = 8) {
+  const items = await collections.menuItems();
+  return items
+    .aggregate([
+      { $match: { status: "approved" } },
+      ...vendorLookupStages(),
+      { $addFields: { premiumRank: { $cond: ["$vendor.isPremium", 1, 0] } } },
+      { $sort: { premiumRank: -1, createdAt: -1 } },
+      { $limit: limit },
+      { $project: { premiumRank: 0 } },
+    ])
+    .toArray();
+}
+
+export async function categoryCounts() {
+  const items = await collections.menuItems();
+  const rows = await items
+    .aggregate([{ $match: { status: "approved" } }, { $group: { _id: "$category", count: { $sum: 1 } } }])
+    .toArray();
+  const map = new Map<string, number>(rows.map((r) => [r._id as string, r.count as number]));
+  return CATEGORIES.map((name) => ({ name, count: map.get(name) ?? 0 }));
+}
+
+export async function distinctLocations(): Promise<string[]> {
+  const items = await collections.menuItems();
+  const locations = await items.distinct("location", { status: "approved" });
+  return locations.sort((a, b) => a.localeCompare(b));
 }
