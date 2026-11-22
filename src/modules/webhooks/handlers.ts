@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { collections } from "../../db/mongo.js";
 import { stripe } from "../payments/stripe.js";
+import { downgradeVendor } from "../payments/downgrade.js";
 import { customerId, invoiceSubscriptionId, periodEnd, vendorIdFrom } from "./helpers.js";
 
 export async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
@@ -83,4 +84,25 @@ export async function onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
 
 export async function onInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
   await recordInvoiceTx(invoice, "failed");
+}
+
+export async function onSubscriptionUpdated(sub: Stripe.Subscription): Promise<void> {
+  const vendorId = vendorIdFrom(sub.metadata);
+  const expiresAt = periodEnd(sub);
+  if (!vendorId || !expiresAt) return;
+  if (sub.status === "active" || sub.status === "trialing") {
+    const users = await collections.users();
+    await users.updateOne({ _id: vendorId }, { $set: { subscriptionPlan: "premium", subscriptionExpiresAt: expiresAt } });
+  }
+}
+
+export async function onSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
+  const vendorId = vendorIdFrom(sub.metadata);
+  if (!vendorId) return;
+  await downgradeVendor(vendorId);
+}
+
+export async function onCheckoutExpired(session: Stripe.Checkout.Session): Promise<void> {
+  const tx = await collections.transactions();
+  await tx.updateOne({ stripeSessionId: session.id, status: "pending" }, { $set: { status: "canceled" } });
 }

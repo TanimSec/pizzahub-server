@@ -2,7 +2,14 @@ import type { RequestHandler } from "express";
 import type Stripe from "stripe";
 import { env } from "../../config/env.js";
 import { stripe } from "../payments/stripe.js";
-import { onCheckoutCompleted, onInvoicePaid, onInvoicePaymentFailed } from "./handlers.js";
+import {
+  onCheckoutCompleted,
+  onCheckoutExpired,
+  onInvoicePaid,
+  onInvoicePaymentFailed,
+  onSubscriptionDeleted,
+  onSubscriptionUpdated,
+} from "./handlers.js";
 
 export const stripeWebhook: RequestHandler = async (req, res) => {
   const signature = req.headers["stripe-signature"];
@@ -27,6 +34,15 @@ export const stripeWebhook: RequestHandler = async (req, res) => {
         break;
       case "invoice.payment_failed":
         await onInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      case "checkout.session.expired":
+        await onCheckoutExpired(event.data.object as Stripe.Checkout.Session);
+        break;
+      case "customer.subscription.updated":
+        await onSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+      case "customer.subscription.deleted":
+        await onSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
       default:
         break;
