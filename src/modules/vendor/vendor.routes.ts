@@ -6,6 +6,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { z } from "zod";
 import { toObjectId } from "../../utils/objectId.js";
 import { itemBody, itemPatch } from "./items.schema.js";
+import { decideOrder, listVendorOrders } from "../orders/orders.service.js";
 import { createItem, deleteItem, getVendorItem, listVendorItems, setAvailability, updateItem } from "./items.service.js";
 
 const router = Router();
@@ -59,6 +60,25 @@ router.delete(
   asyncHandler(async (req, res) => {
     await deleteItem(req.user!._id, toObjectId(req.params.id, "menu item id"));
     res.json({ message: "Menu item deleted" });
+  }),
+);
+
+router.get(
+  "/orders",
+  asyncHandler(async (req, res) => {
+    const { status } = z
+      .object({ status: z.enum(["pending", "accepted", "rejected", "cancelled"]).optional() })
+      .parse(req.query);
+    res.json({ orders: await listVendorOrders(req.user!._id, status) });
+  }),
+);
+
+router.patch(
+  "/orders/:id",
+  asyncHandler(async (req, res) => {
+    const { action } = z.object({ action: z.enum(["accept", "reject"]) }).strict().parse(req.body);
+    const order = await decideOrder(req.user!._id, toObjectId(req.params.id, "order id"), action);
+    res.json({ order, message: action === "accept" ? "Order accepted" : "Order rejected" });
   }),
 );
 

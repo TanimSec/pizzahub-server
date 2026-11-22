@@ -147,3 +147,25 @@ export async function getOrderDetail(viewer: UserDoc, id: ObjectId) {
   if (!order) throw ApiError.notFound("Order not found");
   return order;
 }
+
+export async function listVendorOrders(vendorId: ObjectId, status?: string) {
+  const orders = await collections.orders();
+  return orders
+    .aggregate([
+      { $match: { vendorId, ...(status && { status }) } },
+      { $sort: { createdAt: -1 } },
+      { $lookup: { from: "menuItems", localField: "itemId", foreignField: "_id", as: "item" } },
+      { $unwind: { path: "$item", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          pipeline: [{ $project: { name: 1, email: 1, image: 1 } }],
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+    ])
+    .toArray();
+}
