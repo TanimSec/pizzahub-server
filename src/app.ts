@@ -8,6 +8,7 @@ import uploadRoutes from "./modules/uploads/uploads.routes.js";
 import vendorRoutes from "./modules/vendor/vendor.routes.js";
 import orderRoutes from "./modules/orders/orders.routes.js";
 import customerRoutes from "./modules/customer/customer.routes.js";
+import userRoutes from "./modules/users/users.routes.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -29,6 +30,8 @@ app.use("/api/vendor", vendorRoutes);
 app.use("/api/orders", orderRoutes);
 
 app.use("/api/customer", customerRoutes);
+
+app.use("/api/users", userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
