@@ -29,6 +29,7 @@ export interface MenuItemDoc {
   location: string;
   images: string[];
   status: ItemStatus;
+  deactivatedBy?: "vendor" | "admin" | "system" | null;
   createdAt: Date;
   updatedAt: Date;
 }

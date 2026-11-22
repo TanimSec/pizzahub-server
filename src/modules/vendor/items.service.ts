@@ -65,3 +65,36 @@ export async function deleteItem(vendorId: ObjectId, id: ObjectId) {
   if (open > 0) throw ApiError.conflict("This item has active orders. Resolve them before deleting.");
   await items.deleteOne({ _id: id, vendorId });
 }
+
+export async function setAvailability(vendor: UserDoc, id: ObjectId, available: boolean) {
+  const items = await collections.menuItems();
+  const item = await getVendorItem(vendor._id, id);
+  if (available) {
+    if (item.status === "approved") return item;
+    if (item.status !== "inactive") {
+      throw ApiError.conflict("Only previously approved items can be made available again");
+    }
+    if (item.deactivatedBy === "admin") {
+      throw ApiError.forbidden("This item was deactivated by an admin and cannot be re-enabled");
+    }
+    await assertCanActivate(vendor, id);
+    const updated = await items.findOneAndUpdate(
+      { _id: id, vendorId: vendor._id, status: "inactive" },
+      { $set: { status: "approved", deactivatedBy: null, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+    if (!updated) throw ApiError.conflict("Item state changed, please refresh");
+    return updated;
+  }
+  if (item.status === "inactive") return item;
+  if (item.status !== "approved") {
+    throw ApiError.conflict("Only approved items can be made unavailable");
+  }
+  const updated = await items.findOneAndUpdate(
+    { _id: id, vendorId: vendor._id, status: "approved" },
+    { $set: { status: "inactive", deactivatedBy: "vendor", updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  if (!updated) throw ApiError.conflict("Item state changed, please refresh");
+  return updated;
+}

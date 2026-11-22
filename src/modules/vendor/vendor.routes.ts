@@ -6,7 +6,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { z } from "zod";
 import { toObjectId } from "../../utils/objectId.js";
 import { itemBody, itemPatch } from "./items.schema.js";
-import { createItem, deleteItem, getVendorItem, listVendorItems, updateItem } from "./items.service.js";
+import { createItem, deleteItem, getVendorItem, listVendorItems, setAvailability, updateItem } from "./items.service.js";
 
 const router = Router();
 router.use(verifyJWT, loadUser, requireRole("vendor"));
@@ -41,6 +41,16 @@ router.patch(
   asyncHandler(async (req, res) => {
     const patch = itemPatch.parse(req.body);
     res.json({ item: await updateItem(req.user!._id, toObjectId(req.params.id, "menu item id"), patch) });
+  }),
+);
+
+router.patch(
+  "/items/:id/availability",
+  asyncHandler(async (req, res) => {
+    const { available } = z.object({ available: z.boolean() }).strict().parse(req.body);
+    res.json({
+      item: await setAvailability(req.user!, toObjectId(req.params.id, "menu item id"), available),
+    });
   }),
 );
 

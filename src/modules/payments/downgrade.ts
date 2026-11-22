@@ -12,6 +12,6 @@ export async function downgradeVendor(vendorId: ObjectId): Promise<void> {
     .toArray();
   await items.updateMany(
     { vendorId, status: { $in: ["approved", "pending"] }, _id: { $nin: keep.map((k) => k._id) } },
-    { $set: { status: "inactive", updatedAt: new Date() } },
+    { $set: { status: "inactive", deactivatedBy: "system", updatedAt: new Date() } },
   );
 }
