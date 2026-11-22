@@ -4,6 +4,7 @@ import { loadUser } from "../../middleware/loadUser.js";
 import { requireRole } from "../../middleware/requireRole.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { z } from "zod";
+import { vendorStats } from "./stats.service.js";
 import { toObjectId } from "../../utils/objectId.js";
 import { itemBody, itemPatch } from "./items.schema.js";
 import { decideOrder, listVendorOrders } from "../orders/orders.service.js";
@@ -11,6 +12,13 @@ import { createItem, deleteItem, getVendorItem, listVendorItems, setAvailability
 
 const router = Router();
 router.use(verifyJWT, loadUser, requireRole("vendor"));
+
+router.get(
+  "/stats",
+  asyncHandler(async (req, res) => {
+    res.json(await vendorStats(req.user!));
+  }),
+);
 
 router.post(
   "/items",
