@@ -11,7 +11,7 @@ REST API for **PizzaHub**, a pizza ordering and delivery platform where customer
 
 - Better Auth JWT verification (JWKS) with role middleware for Admin, Vendor and Customer
 - Public menu browsing: search, category and location filters, price range, price sorting, pagination
-- Vendor menu CRUD with ownership checks, ImgBB image upload, free-plan limit of 3 active items
+- Vendor menu CRUD with ownership checks, image upload (Cloudinary by default, ImgBB optional), free-plan limit of 3 active items
 - Order flow: duplicate and self-order protection, atomic accept/reject/cancel, status timeline
 - Admin: user search, role filter, block/unblock (sessions revoked), item review, read-only transactions, stats
 - Stripe subscription Checkout; Premium is activated only by a signature-verified webhook
@@ -56,7 +56,9 @@ stripe listen --forward-to localhost:5000/api/webhooks/stripe
 | STRIPE_SECRET_KEY | Stripe secret key |
 | STRIPE_WEBHOOK_SECRET | Stripe webhook signing secret |
 | STRIPE_PREMIUM_PRICE_ID | Recurring monthly Premium price |
-| IMGBB_API_KEY | ImgBB upload key |
+| IMAGE_PROVIDER | `cloudinary` (default) or `imgbb` |
+| CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET | Cloudinary credentials (when provider is cloudinary) |
+| IMGBB_API_KEY | ImgBB key (when provider is imgbb) |
 
 Secrets live only in `.env` / hosting settings and are never committed.
 
