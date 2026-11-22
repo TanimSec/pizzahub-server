@@ -10,4 +10,3 @@ export const requireRole =
     next();
   };
 
-export const authenticated: RequestHandler[] = [];
