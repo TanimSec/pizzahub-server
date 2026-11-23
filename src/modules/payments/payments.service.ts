@@ -20,6 +20,8 @@ export async function createCheckoutSession(vendor: UserDoc) {
   try {
     session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      // Show the plan price exactly as configured (USD) instead of converting it to the buyer's currency.
+      adaptive_pricing: { enabled: false },
       line_items: [{ price: env.STRIPE_PREMIUM_PRICE_ID, quantity: 1 }],
       client_reference_id: vendorId,
       metadata: { vendorId },
