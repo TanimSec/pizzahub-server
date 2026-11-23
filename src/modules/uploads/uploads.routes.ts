@@ -19,6 +19,23 @@ const upload = multer({
   },
 });
 
+/**
+ * "imgbb" and "cloudinary" use that host only. "auto" tries ImgBB first and falls back to Cloudinary
+ * when ImgBB refuses or is unreachable, so uploads keep working even if ImgBB blocks the API key.
+ */
+async function uploadImage(buffer: Buffer, filename: string, mime: string): Promise<string> {
+  if (env.IMAGE_PROVIDER === "imgbb") return uploadToImgbb(buffer, filename, mime);
+  if (env.IMAGE_PROVIDER === "cloudinary") return uploadToCloudinary(buffer, filename, mime);
+  if (env.IMGBB_API_KEY) {
+    try {
+      return await uploadToImgbb(buffer, filename, mime);
+    } catch (err) {
+      console.warn("ImgBB upload failed, falling back to Cloudinary:", (err as Error).message);
+    }
+  }
+  return uploadToCloudinary(buffer, filename, mime);
+}
+
 const router = Router();
 
 router.post(
@@ -35,8 +52,7 @@ router.post(
   },
   asyncHandler(async (req, res) => {
     if (!req.file) throw ApiError.badRequest("Image file is required");
-    const upload = env.IMAGE_PROVIDER === "imgbb" ? uploadToImgbb : uploadToCloudinary;
-    const url = await upload(req.file.buffer, req.file.originalname, req.file.mimetype);
+    const url = await uploadImage(req.file.buffer, req.file.originalname, req.file.mimetype);
     res.status(201).json({ url });
   }),
 );
